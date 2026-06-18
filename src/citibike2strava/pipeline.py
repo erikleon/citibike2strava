@@ -76,10 +76,12 @@ class Pipeline:
                 detail=f"{ride.activity_name} ({ride.sport_type})",
             )
 
+        # Keep the description free of billing details (the receipt line item
+        # carries the per-minute rate and dollar charge); link the project.
         description = (
-            f"Imported from Citi Bike receipt #{ride.receipt_id} "
-            f"({ride.raw_line_item or 'bike ride'}). "
-            f"{distance_mi} mi via citibike2strava."
+            f"Imported from Citi Bike receipt #{ride.receipt_id}. "
+            f"{distance_mi} mi via citibike2strava — "
+            f"https://github.com/erikleon/citibike2strava"
         )
         try:
             result = self.strava().upload_gpx(
