@@ -164,6 +164,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Output uses non-ASCII glyphs (status icons, the route arrow "→") and
+    # station names with accents. Windows consoles default to cp1252, which
+    # can't encode these and raises UnicodeEncodeError on print; force UTF-8.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
