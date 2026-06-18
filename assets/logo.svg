@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="citibike2strava">
+  <title>citibike2strava</title>
+  <!-- rim -->
+  <circle cx="64" cy="64" r="42" fill="none" stroke="#1f78d1" stroke-width="7"/>
+  <!-- spokes -->
+  <line x1="64" y1="64" x2="102.00" y2="64.00" stroke="#1f78d1" stroke-width="4.5" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="83.00" y2="31.09" stroke="#1f78d1" stroke-width="4.5" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="45.00" y2="31.09" stroke="#1f78d1" stroke-width="4.5" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="26.00" y2="64.00" stroke="#1f78d1" stroke-width="4.5" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="45.00" y2="96.91" stroke="#1f78d1" stroke-width="4.5" stroke-linecap="round"/>
+  <line x1="64" y1="64" x2="83.00" y2="96.91" stroke="#1f78d1" stroke-width="4.5" stroke-linecap="round"/>
+  <!-- hub -->
+  <circle cx="64" cy="64" r="7" fill="#1f78d1"/>
+  <!-- start marker (Strava orange) -->
+  <circle cx="48.27" cy="25.06" r="9" fill="#fc4c02"/>
+</svg>

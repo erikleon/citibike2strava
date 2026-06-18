@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="citibike2strava logo" width="120" height="120" />
+</p>
+
 # citibike2strava
 
 [![CI](https://github.com/erikleon/citibike2strava/actions/workflows/ci.yml/badge.svg)](https://github.com/erikleon/citibike2strava/actions/workflows/ci.yml)
