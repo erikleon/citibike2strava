@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>citibike2strava — Citi Bike receipts → Strava rides</title>
+    <meta
+      name="description"
+      content="Turn the Ride Receipt emails Citi Bike sends to your Gmail into Strava activities — real route map, correct distance, proper timestamps. A small, auditable Python CLI you run yourself."
+    />
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <meta property="og:title" content="citibike2strava" />
+    <meta
+      property="og:description"
+      content="Citi Bike Ride Receipt emails → Strava activities, with the real route map."
+    />
+    <meta property="og:image" content="assets/logo.png" />
+    <style>
+      :root {
+        --blue: #1f78d1;
+        --orange: #fc4c02;
+        --bg: #0d1117;
+        --bg-soft: #161b22;
+        --bg-term: #0a0e14;
+        --border: #21262d;
+        --text: #e6edf3;
+        --muted: #9aa7b4;
+        --green: #3fb950;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--blue);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      code,
+      pre,
+      .mono {
+        font-family:
+          "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* Hero */
+      header.hero {
+        text-align: center;
+        padding: 72px 24px 56px;
+        background:
+          radial-gradient(
+            900px 400px at 50% -10%,
+            rgba(31, 120, 209, 0.18),
+            transparent 70%
+          ),
+          radial-gradient(
+            700px 380px at 80% 0%,
+            rgba(252, 76, 2, 0.12),
+            transparent 70%
+          );
+        border-bottom: 1px solid var(--border);
+      }
+      .hero img.logo {
+        width: 96px;
+        height: 96px;
+      }
+      .hero h1 {
+        font-size: clamp(2.2rem, 6vw, 3.2rem);
+        margin: 16px 0 8px;
+        letter-spacing: -0.02em;
+      }
+      .hero h1 .two {
+        color: var(--muted);
+      }
+      .hero h1 .strava {
+        color: var(--orange);
+      }
+      .tagline {
+        max-width: 640px;
+        margin: 0 auto 28px;
+        font-size: 1.15rem;
+        color: var(--muted);
+      }
+      .badges {
+        margin-bottom: 28px;
+      }
+      .badges img {
+        height: 20px;
+        vertical-align: middle;
+      }
+
+      .cta {
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 22px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition:
+          transform 0.08s ease,
+          box-shadow 0.15s ease,
+          background 0.15s ease;
+      }
+      .btn:hover {
+        text-decoration: none;
+        transform: translateY(-1px);
+      }
+      .btn-primary {
+        background: var(--orange);
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(252, 76, 2, 0.35);
+      }
+      .btn-primary:hover {
+        background: #ff5c14;
+      }
+      .btn-ghost {
+        background: var(--bg-soft);
+        color: var(--text);
+        border-color: var(--border);
+      }
+      .btn-ghost:hover {
+        border-color: var(--blue);
+      }
+
+      /* Sections */
+      section {
+        padding: 56px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      section h2 {
+        font-size: 1.7rem;
+        margin: 0 0 8px;
+        letter-spacing: -0.01em;
+      }
+      section .lead {
+        color: var(--muted);
+        margin: 0 0 32px;
+      }
+
+      /* Terminal mockups */
+      .terminals {
+        display: grid;
+        gap: 20px;
+      }
+      .terminal {
+        background: var(--bg-term);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      }
+      .term-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: #11161d;
+        border-bottom: 1px solid var(--border);
+      }
+      .term-bar .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      .dot.red {
+        background: #ff5f56;
+      }
+      .dot.amber {
+        background: #ffbd2e;
+      }
+      .dot.green {
+        background: #27c93f;
+      }
+      .term-bar .title {
+        margin-left: 8px;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .term-body {
+        padding: 18px 20px;
+        font-size: 0.92rem;
+        overflow-x: auto;
+        line-height: 1.7;
+      }
+      .term-body .line {
+        white-space: pre;
+      }
+      .term-body .prompt {
+        color: var(--blue);
+      }
+      .term-body .cmd {
+        color: var(--text);
+      }
+      .term-body .ok {
+        color: var(--green);
+      }
+      .term-body .dim {
+        color: var(--muted);
+      }
+      .term-body .url {
+        color: var(--blue);
+      }
+      .term-body .accent {
+        color: var(--orange);
+      }
+
+      /* Steps / how it works */
+      .steps {
+        display: grid;
+        gap: 18px;
+        counter-reset: step;
+      }
+      .step {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 16px;
+        align-items: start;
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 18px 20px;
+      }
+      .step .num {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(31, 120, 209, 0.15);
+        color: var(--blue);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+      }
+      .step h3 {
+        margin: 2px 0 4px;
+        font-size: 1.05rem;
+      }
+      .step p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .step code {
+        background: #0d1117;
+        padding: 1px 6px;
+        border-radius: 5px;
+        font-size: 0.86em;
+        color: var(--text);
+      }
+
+      /* Setup code block */
+      pre.code {
+        background: var(--bg-term);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        overflow-x: auto;
+        font-size: 0.9rem;
+        line-height: 1.7;
+        margin: 0 0 16px;
+      }
+      pre.code .c {
+        color: var(--muted);
+      }
+      pre.code .p {
+        color: var(--green);
+      }
+
+      /* Features */
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+      .feature {
+        background: var(--bg-soft);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+      }
+      .feature .ic {
+        font-size: 1.4rem;
+      }
+      .feature h3 {
+        margin: 8px 0 4px;
+        font-size: 1.02rem;
+      }
+      .feature p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      /* Footer */
+      footer {
+        padding: 40px 24px 56px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      footer .links {
+        margin-bottom: 12px;
+      }
+      footer .links a {
+        margin: 0 10px;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--green);
+        color: #04120a;
+        font-weight: 600;
+        padding: 10px 18px;
+        border-radius: 8px;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <img class="logo" src="assets/logo.svg" alt="citibike2strava logo" />
+        <h1>
+          citibike<span class="two">2</span><span class="strava">strava</span>
+        </h1>
+        <p class="tagline">
+          Turn the <strong>Ride Receipt</strong> emails Citi Bike sends to your
+          Gmail into <strong>Strava activities</strong> — with the real route
+          map, correct distance, and proper timestamps. A small, auditable
+          Python CLI you run yourself.
+        </p>
+        <div class="badges">
+          <a
+            href="https://github.com/erikleon/citibike2strava/actions/workflows/ci.yml"
+          >
+            <img
+              src="https://github.com/erikleon/citibike2strava/actions/workflows/ci.yml/badge.svg"
+              alt="CI status"
+            />
+          </a>
+        </div>
+        <div class="cta">
+          <button
+            class="btn btn-primary"
+            id="cloneBtn"
+            data-clone="git clone https://github.com/erikleon/citibike2strava"
+          >
+            <span aria-hidden="true">⧉</span> Clone the repo
+          </button>
+          <a
+            class="btn btn-ghost"
+            href="https://github.com/erikleon/citibike2strava"
+          >
+            <span aria-hidden="true">★</span> View on GitHub
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <section id="demo">
+      <div class="wrap">
+        <h2>See it run</h2>
+        <p class="lead">
+          One command processes every receipt that hasn't been uploaded yet.
+          Preview first with <code class="mono">--dry-run</code> — it parses
+          only, no writes.
+        </p>
+        <div class="terminals">
+          <div class="terminal">
+            <div class="term-bar">
+              <span class="dot red"></span><span class="dot amber"></span
+              ><span class="dot green"></span>
+              <span class="title">citibike2strava run</span>
+            </div>
+            <div class="term-body mono">
+              <div class="line">
+                <span class="prompt">$</span>
+                <span class="cmd">citibike2strava run</span>
+              </div>
+              <div class="line">
+                <span class="ok">✓ [uploaded]</span> receipt
+                #2230948359918490468 <span class="accent">3.39 mi</span> —
+                Bedford Ave &amp; Maple St → Myrtle Ave &amp; Lewis Ave
+              </div>
+              <div class="line">
+                <span class="dim"> </span
+                ><span class="url"
+                  >https://www.strava.com/activities/123456789</span
+                >
+              </div>
+              <div class="line"></div>
+              <div class="line">
+                <span class="dim">1 uploaded, 0 errors, 1 total.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="terminal">
+            <div class="term-bar">
+              <span class="dot red"></span><span class="dot amber"></span
+              ><span class="dot green"></span>
+              <span class="title">citibike2strava run --dry-run</span>
+            </div>
+            <div class="term-body mono">
+              <div class="line">
+                <span class="prompt">$</span>
+                <span class="cmd">citibike2strava run --dry-run --limit 1</span>
+              </div>
+              <div class="line">
+                <span class="dim">· [dry-run]</span> receipt
+                #2230984572681199610 <span class="accent">4.29 mi</span> —
+                Bushwick Ave &amp; Forrest St → Rogers Ave &amp; Lincoln Rd
+                <span class="dim">(EBikeRide)</span>
+              </div>
+              <div class="line"></div>
+              <div class="line">
+                <span class="dim">0 uploaded, 0 errors, 1 total.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="wrap">
+        <h2>How it works</h2>
+        <p class="lead">
+          Gmail → parse receipt → build GPX → upload to Strava → tag &amp;
+          label. Your tokens never leave your machine.
+        </p>
+        <div class="steps">
+          <div class="step">
+            <div class="num">1</div>
+            <div>
+              <h3>Find the receipts</h3>
+              <p>
+                Searches Gmail for
+                <code>from:updates.citibikenyc.com subject:"Ride Receipt"</code
+                >, skipping anything already uploaded.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <div>
+              <h3>Parse the ride</h3>
+              <p>
+                Pulls start/end stations and times, the e-bike flag, the receipt
+                number, and the Google-encoded <strong>polyline</strong> of the
+                route — the source of truth for coordinates.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <div>
+              <h3>Build the GPX track</h3>
+              <p>
+                Computes distance from the polyline and interpolates each
+                point's timestamp across the ride window. Distance and elapsed
+                time are exact; the speed profile is smoothed.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">4</div>
+            <div>
+              <h3>Upload &amp; tag</h3>
+              <p>
+                Uploads the GPX to Strava, sets the sport type to
+                <strong>E-Bike Ride</strong> where applicable, and labels the
+                email so it's never uploaded twice.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="setup">
+      <div class="wrap">
+        <h2>Setup</h2>
+        <p class="lead">
+          Requires Python 3.11+. You register your own Google and Strava apps —
+          there's no shared server and no third party in the loop.
+        </p>
+        <pre class="code mono"><span class="c"># 1. Clone &amp; install</span>
+git clone https://github.com/erikleon/citibike2strava
+cd citibike2strava
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e .
+
+<span class="c"># 2. Register your own Google + Strava apps and add credentials.</span>
+<span class="c">#    Full walkthrough: docs/OAUTH_SETUP.md</span>
+cp .env.example .env
+$EDITOR .env
+
+<span class="c"># 3. Authorize (opens your browser for each service).</span>
+citibike2strava login
+
+<span class="c"># 4. Preview what would be uploaded — parses only, no writes.</span>
+citibike2strava run --dry-run
+
+<span class="c"># 5. Do it for real.</span>
+citibike2strava run</pre>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="wrap">
+        <h2>Why it's nice</h2>
+        <p class="lead">Accurate, private, and idempotent by design.</p>
+        <div class="features">
+          <div class="feature">
+            <div class="ic">🗺️</div>
+            <h3>Real route map</h3>
+            <p>
+              The GPX is decoded from the receipt's polyline, so Strava shows
+              the actual streets you rode.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="ic">⚡</div>
+            <h3>E-bike aware</h3>
+            <p>
+              Electric rides are tagged as <strong>E-Bike Ride</strong> on
+              Strava automatically.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="ic">🔁</div>
+            <h3>Never double-counts</h3>
+            <p>
+              Uploaded emails get labelled, and Strava rejects a duplicate
+              <code>external_id</code> — so a ride is only ever imported once.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="ic">🔒</div>
+            <h3>Your data stays yours</h3>
+            <p>
+              You bring your own OAuth apps. Tokens are stored locally with
+              <code>0600</code> permissions and never sent to anyone but Google
+              and Strava.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="get" style="text-align: center; border-bottom: none">
+      <div class="wrap">
+        <h2>Get started</h2>
+        <p class="lead" style="margin-bottom: 28px">
+          Clone it, register your apps, and import your rides in a few minutes.
+        </p>
+        <div class="cta">
+          <button
+            class="btn btn-primary"
+            data-clone="git clone https://github.com/erikleon/citibike2strava"
+          >
+            <span aria-hidden="true">⧉</span> Clone the repo
+          </button>
+          <a
+            class="btn btn-ghost"
+            href="https://github.com/erikleon/citibike2strava"
+          >
+            <span aria-hidden="true">★</span> View on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="links">
+        <a href="https://github.com/erikleon/citibike2strava">GitHub</a>
+        <a
+          href="https://github.com/erikleon/citibike2strava/blob/main/docs/SECURITY.md"
+          >Security</a
+        >
+        <a
+          href="https://github.com/erikleon/citibike2strava/blob/main/docs/ARCHITECTURE.md"
+          >Architecture</a
+        >
+        <a href="https://github.com/erikleon/citibike2strava/blob/main/LICENSE"
+          >License (MIT)</a
+        >
+      </div>
+      <p>MIT licensed. Not affiliated with Citi Bike, Lyft, or Strava.</p>
+    </footer>
+
+    <div class="toast" id="toast">
+      Copied <span class="mono">git clone</span> command ✓
+    </div>
+
+    <script>
+      const toast = document.getElementById("toast");
+      function showToast() {
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 1800);
+      }
+      document.querySelectorAll("[data-clone]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const cmd = btn.getAttribute("data-clone");
+          try {
+            await navigator.clipboard.writeText(cmd);
+          } catch (e) {
+            const ta = document.createElement("textarea");
+            ta.value = cmd;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            ta.remove();
+          }
+          showToast();
+        });
+      });
+    </script>
+  </body>
+</html>
