@@ -1,0 +1,34 @@
+<!--
+  Sanitized fixture mirroring a real Citi Bike "Ride Receipt" (Lyft make_email
+  v1.4.1). Station names and receipt number are anonymized. Station names keep
+  the literal "&" to exercise XML escaping. The static-map URL keeps the real
+  corruption (origin_lat@.66035) AND a clean real encoded polyline, so tests
+  prove we ignore the scalar params and trust the decoded line instead.
+-->
+<html>
+  <body>
+    <table>
+      <tr><td>JUNE 17, 2026</td><td>AT</td><td>6:59 PM</td></tr>
+      <tr><td>
+        <img src="https://maps.example.com/static?origin_lat@.66035&amp;origin_lng&#65533;3.95679&amp;dest_lat@.69682&amp;dest_lng&#65533;3.93757&amp;polyline=endwF%7CtkbMFEiAN_BLaBHi%40DQGo%40PkAJ%7B%40%40qAHcBB%7DAHyAGuA%5DiAYu%40WkAW%7B%40SICWMmAWuAa%40oA%5BoA%5B%7DAa%40%7DA_%40kA%5Do%40SUKQEWIuAYaBc%40%7DBk%40iCo%40qBi%40iCq%40eBc%40kA%5B_Ba%40aA%5BIBmAYqAa%40cBe%40%7DAMmBNgBPoBN%7DAVqBV_ANWHi%40HSBaADcBPyANaBT%7DANkBTaBPkBXiBT%7DAN%7D%40PIAa%40%40oARuALaBTcBT%7BBRmBTwANgBVyAPgBR_BT%7DAP_BToALeAEIg%40K_AMgBKmBIgBMqBKkBEw%40c%40%7BAKyBEy%40MyBMsBM_CCg%40KmBM_CKmBMaCOoBKmBM%7BBKmBOqBGu%40CUGgBM%7DBKoBO_CKkBOmCKmBO%7DBKgBOwAqAJoAHsAJu%40IKWD%3F" alt="map">
+      </td></tr>
+      <tr><td>Free unlock</td><td>$0.00</td></tr>
+      <tr><td>Ebike ride ($0.27 per min for 20 min)</td><td>$5.40</td></tr>
+      <tr><td>NYC Sales Tax</td><td>$0.48</td></tr>
+
+      <tr><td>Your Trip</td></tr>
+      <tr>
+        <td><img src="marker.png"></td>
+        <td>Bedford Ave &amp; Maple St</td>
+        <td><span>Start</span><br>6:59 pm</td>
+      </tr>
+      <tr>
+        <td><img src="marker.png"></td>
+        <td>Myrtle Ave &amp; Lewis Ave</td>
+        <td><span>End</span><br>7:18 pm</td>
+      </tr>
+
+      <tr><td>Receipt # 1234567890123456789</td></tr>
+    </table>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "citibike2strava"
+version = "0.1.0"
+description = "Turn Citi Bike email ride receipts into Strava activities."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "citibike2strava contributors" }]
+keywords = ["citibike", "strava", "gmail", "gpx", "cycling"]
+dependencies = [
+    "beautifulsoup4>=4.12",
+    "requests>=2.31",
+    "google-api-python-client>=2.100",
+    "google-auth>=2.23",
+    "google-auth-oauthlib>=1.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+citibike2strava = "citibike2strava.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/erikleon/citibike2strava"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
