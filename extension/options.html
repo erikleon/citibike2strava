@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>citibike2strava options</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 520px; margin: 2rem auto; padding: 0 1rem; }
+      label { display: block; margin: 1rem 0 0.25rem; font-weight: 600; }
+      input { width: 100%; padding: 0.5rem; font-size: 14px; box-sizing: border-box; }
+      button { margin-top: 1rem; padding: 0.5rem 1rem; cursor: pointer; }
+      .hint { color: #555; font-size: 13px; }
+      #status { margin-left: 0.75rem; color: #2a7; }
+    </style>
+  </head>
+  <body>
+    <h1>citibike2strava</h1>
+    <p class="hint">
+      Run <code>citibike2strava serve</code> locally. It prints an auth token
+      (also saved to <code>~/.config/citibike2strava/server_token</code>). Paste
+      that token below so the extension can talk to your local backend.
+    </p>
+
+    <label for="endpoint">Backend endpoint</label>
+    <input id="endpoint" type="text" value="http://127.0.0.1:8722" />
+
+    <label for="token">Auth token</label>
+    <input id="token" type="password" placeholder="paste the token from `serve`" />
+
+    <div>
+      <button id="save">Save</button>
+      <span id="status"></span>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "citibike2strava (one-click)",
+  "version": "0.1.0",
+  "description": "Add a button to Citi Bike ride receipts in Gmail that uploads the ride to Strava via the local citibike2strava backend.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "http://127.0.0.1:8722/*",
+    "http://localhost:8722/*"
+  ],
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

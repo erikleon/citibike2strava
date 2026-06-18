@@ -1,5 +1,7 @@
 # citibike2strava
 
+[![CI](https://github.com/erikleon/citibike2strava/actions/workflows/ci.yml/badge.svg)](https://github.com/erikleon/citibike2strava/actions/workflows/ci.yml)
+
 Turn the **Ride Receipt** emails Citi Bike sends to your Gmail into **Strava
 activities** — with the real route map (decoded from the receipt's polyline),
 correct distance, and proper timestamps. E-bike rides are tagged as
@@ -85,7 +87,22 @@ citibike2strava run
 | `citibike2strava run [--dry-run] [--limit N]` | Process all not-yet-uploaded receipts. |
 | `citibike2strava process <message_id> [--dry-run]` | Process a single receipt by Gmail message id. |
 | `citibike2strava export <message_id> [-o ride.gpx]` | Write a receipt's GPX without uploading (debugging). |
+| `citibike2strava serve [--port N]` | Run the local one-click backend for the browser extension. |
 | `citibike2strava logout` | Delete stored tokens. |
+
+## One-click from inside the email (browser extension)
+
+For uploading the receipt you're currently reading in Gmail with a single click:
+
+```bash
+citibike2strava serve        # loopback backend; prints an auth token
+```
+
+Then load the [`extension/`](extension/) folder as an unpacked Chrome extension,
+paste the printed token into its Options, and a **↑ Strava** button appears on
+Citi Bike receipts. The extension never holds your OAuth tokens — it only calls
+the local backend, which re-fetches and re-parses the receipt server-side. See
+[extension/README.md](extension/README.md).
 
 ## Configuration
 

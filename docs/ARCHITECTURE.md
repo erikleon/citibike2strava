@@ -19,6 +19,7 @@ src/citibike2strava/
 ├── config.py         env/.env/toml config + on-disk locations
 ├── pipeline.py       orchestration: process_message / process_inbox  ← reusable core
 ├── cli.py            argparse front-end (one of potentially many front-ends)
+├── server.py         loopback one-click backend (front-end #2, see Path 2)
 └── auth/
     ├── token_store.py   TokenStore ABC + FileTokenStore  ← the storage seam
     ├── google_auth.py   Gmail OAuth (installed-app loopback)
@@ -80,30 +81,32 @@ A natural automation for the hosted version is **Gmail push notifications**
 (`users.watch` → Pub/Sub): on a new matching message, enqueue
 `process_message(message_id, user_id)`.
 
-## Path 2 — one-click upload from inside the email
+## Path 2 — one-click upload from inside the email (implemented)
 
-Goal: a button in the Gmail message ("Send this ride to Strava") that uploads
-the open receipt in one click.
+A button in the Gmail message that uploads the open receipt in one click. This
+is shipped as a thin front-end over the same core:
 
-Recommended shape:
+- **`server.py`** — a stdlib HTTP server bound to `127.0.0.1` exposing
+  `POST /api/rides/upload {"message_id": "..."}`, which is a direct wrapper over
+  `Pipeline.process_message` returning the existing `RideResult` as JSON. Run it
+  with `citibike2strava serve`.
+- **`extension/`** — a Manifest V3 browser extension whose content script
+  detects an open Citi Bike receipt (via `data-legacy-message-id` + sender
+  check), injects a button, and POSTs the message id to the local backend.
 
-- A **browser extension** (content script) that detects an open Citi Bike
-  receipt in Gmail and injects a button. It reads the message id from the Gmail
-  DOM/URL (or via `gmail.js`).
-- The button calls a small **backend endpoint** — either the hosted service
-  above or a tiny local helper bound to `127.0.0.1` — e.g.:
-  ```
-  POST /api/rides/upload   { "message_id": "...", "user_id": "..." }
-  → { "status": "uploaded", "activity_url": "https://www.strava.com/activities/…" }
-  ```
-- That endpoint is a one-line wrapper over `Pipeline.process_message`, returning
-  the existing `RideResult`. No core changes.
+Security choices baked in (see `server.py` and [SECURITY.md](SECURITY.md)):
 
-Security notes for this path: authenticate the extension→backend call (per-user
-token / same-origin + CSRF protection), keep the backend's OAuth tokens server-
-side (never expose them to the extension), and treat the `message_id` as
-untrusted (the backend re-fetches and re-parses the receipt itself rather than
-trusting any client-supplied ride data).
+- Loopback-only bind; `build_server` refuses any non-loopback host.
+- Bearer token (`X-Auth-Token`, `hmac.compare_digest`) generated locally and
+  shared only with the extension; OAuth tokens never leave the backend.
+- CORS limited to `https://mail.google.com`; loopback `fetch` from the HTTPS
+  page is exempt from mixed-content blocking in Chrome.
+- The `message_id` is treated as untrusted: the backend re-fetches and re-parses
+  the receipt itself rather than trusting any client-supplied ride data.
+
+The same endpoint maps cleanly onto the hosted service (Path 1): swap the
+loopback server for an authenticated web handler that resolves `user_id` and
+calls the identical `process_message`.
 
 ## Testing strategy
 

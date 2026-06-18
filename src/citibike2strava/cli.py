@@ -5,6 +5,7 @@
     citibike2strava run [--dry-run] [--limit N]  process all new receipts
     citibike2strava process <message_id>         process one receipt
     citibike2strava export <message_id> -o f.gpx write GPX without uploading
+    citibike2strava serve                        run the local one-click backend
     citibike2strava logout                       delete stored tokens
 """
 
@@ -119,6 +120,14 @@ def cmd_export(args) -> int:
     return 0
 
 
+def cmd_serve(args) -> int:
+    from . import server
+
+    config, _ = _store_and_config(args)
+    server.serve(config, host=args.host, port=args.port)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="citibike2strava", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -145,6 +154,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_exp.add_argument("message_id")
     p_exp.add_argument("-o", "--output", help="output file (default: stdout)")
     p_exp.set_defaults(func=cmd_export)
+
+    p_serve = sub.add_parser("serve", help="run the local one-click backend (loopback)")
+    p_serve.add_argument("--host", default="127.0.0.1", help="loopback host to bind")
+    p_serve.add_argument("--port", type=int, default=8722, help="port (default 8722)")
+    p_serve.set_defaults(func=cmd_serve)
 
     return parser
 
