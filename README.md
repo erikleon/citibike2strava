@@ -119,6 +119,26 @@ Settings come from environment variables, a local `.env`, or
 - `CITIBIKE2STRAVA_TZ` — receipt timezone (default `America/New_York`).
 - `CITIBIKE2STRAVA_GMAIL_QUERY`, `CITIBIKE2STRAVA_LABEL` — override search/label.
 
+### Behind a corporate proxy
+
+The Google API client uses `httplib2`, which only routes through an
+`HTTP_PROXY`/`HTTPS_PROXY` proxy when the `PySocks` package is installed.
+Without it, httplib2 **silently ignores the proxy** and connects directly,
+which on a locked-down network fails with a connection timeout
+(`WinError 10060` on Windows). If you are behind a proxy, install it:
+
+```bash
+pip install pysocks
+```
+
+Set the proxy via the standard env vars (URL-encode any special characters in
+the credentials, e.g. `@` → `%40`):
+
+```bash
+export HTTPS_PROXY="http://user%40domain:pass@proxy.host:8080"
+export HTTP_PROXY="$HTTPS_PROXY"
+```
+
 ## Idempotency
 
 A ride is never double-counted: after a successful upload the source email is
