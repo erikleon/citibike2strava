@@ -8,6 +8,7 @@ only ever see the resulting refresh token.
 
 from __future__ import annotations
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -65,7 +66,15 @@ def get_credentials(
         )
     creds = Credentials.from_authorized_user_info(data, scopes=GOOGLE_SCOPES)
     if not creds.valid and creds.refresh_token:
-        creds.refresh(Request())
+        try:
+            creds.refresh(Request())
+        except RefreshError as exc:
+            # Revoked consent / expired refresh token: tell the user how to fix
+            # it instead of dumping a traceback into an unattended run's log.
+            raise NotAuthorizedError(
+                "Gmail token refresh failed; re-run `citibike2strava login "
+                f"--gmail`. ({exc})"
+            ) from exc
         store.save(PROVIDER, _to_dict(creds), user_id)
     return creds
 
