@@ -16,6 +16,12 @@ own Google and Strava apps, and your tokens never leave your machine** — there
 is no shared server and no third party in the loop. See
 [docs/SECURITY.md](docs/SECURITY.md).
 
+Beyond a single run it can [**backfill your whole ride history**](#backfill-your-whole-history)
+(rate-limit aware and resumable), [**sync new rides automatically**](#unattended-auto-sync)
+on a schedule, work [**without Gmail at all**](#without-connecting-gmail-eml--paste) from a
+saved `.eml`, and import from [**other Lyft bikeshares**](#other-lyft-bikeshare-cities)
+(Divvy, Bay Wheels, Bluebikes, Capital Bikeshare).
+
 ```
 $ citibike2strava run
 ✓ [uploaded] receipt #2230948359918490468 3.39 mi — Bedford Ave & Maple St → Myrtle Ave & Lewis Ave
@@ -220,10 +226,11 @@ see that document.
 ## Reuse & future direction
 
 The parsing/GPX/upload core is decoupled from auth and storage behind a
-`TokenStore` interface and a single `Pipeline.process_message(message_id)`
-entrypoint, so the same code can power a hosted multi-user service or a
-"one-click from inside the email" browser extension later. Design and migration
-notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+`TokenStore` interface and two entrypoints: `Pipeline.process_message(message_id)`
+(Gmail) and `Pipeline.process_html(html)` (a saved `.eml`, a paste, or a future
+inbound-email webhook — no Gmail needed). The same code could power a hosted
+multi-user service or the "one-click from inside the email" browser extension.
+Design and migration notes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Development
 
