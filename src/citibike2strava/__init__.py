@@ -6,12 +6,14 @@ browser-extension backend, etc.):
     from citibike2strava import parse_receipt, build_gpx, Pipeline, Ride
 """
 
+from .eml import EmlParseError, html_from_eml
 from .gpx import build_gpx
 from .models import Ride, TrackPoint
 from .pipeline import Pipeline, RideResult
+from .processed import ProcessedStore
 from .receipt import ReceiptParseError, parse_receipt
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "parse_receipt",
@@ -21,5 +23,8 @@ __all__ = [
     "RideResult",
     "Ride",
     "TrackPoint",
+    "html_from_eml",
+    "EmlParseError",
+    "ProcessedStore",
     "__version__",
 ]
