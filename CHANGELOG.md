@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-18
+
+Sharpen the local tool: bulk backfill, more cities, no-Gmail ingestion, and
+unattended sync. (Strategic decision: stay a local OSS tool rather than a hosted
+SaaS — see `TODOS.md` for the Strava platform-risk rationale.)
+
+### Added
+
+- **Bulk backfill with rate-limit resilience**: `run --since/--until` targets a
+  date window; `strava_client` now paces requests under Strava's 200/15min limit
+  (client-side sliding window) and honours `Retry-After` with backoff on `429`.
+  A failure on one receipt no longer aborts the batch, and results stream as they
+  complete. Resumable via idempotency.
+- **`.eml` / paste ingestion**: `process-file <path|->` parses a saved or
+  forwarded receipt (including forwarded-as-attachment `message/rfc822`) or a
+  raw HTML paste on stdin — no Gmail API needed. New `Pipeline.process_html`
+  seam; `gmail.modify` is not required for this path.
+- **Multi-city Lyft systems**: `CITIBIKE2STRAVA_SYSTEM` selects Citi Bike (NYC,
+  verified) or experimental Divvy / Bay Wheels / Bluebikes / Capital Bikeshare,
+  deriving the Gmail sender and timezone. The parser fails closed on any
+  template mismatch.
+- **Scheduled auto-sync recipes**: `schedule [--interval-minutes N]` prints
+  cron / launchd / Task Scheduler snippets that invoke the idempotent `run`.
+- **Local processed-receipts cache**: a fast-path skip for the `.eml` path
+  (`--force` bypasses); Strava's `external_id` remains authoritative on conflict.
+
+### Changed
+
+- OAuth refresh failures (revoked/expired tokens) now raise a clear "re-run
+  login" error instead of a traceback — important for unattended runs.
+- Set `CITIBIKE2STRAVA_LOG=<path>` to append a one-line summary per run so a
+  silent scheduled failure is discoverable.
+
 ## [0.1.0] - 2026-06-18
 
 Initial release.
@@ -41,5 +74,6 @@ Initial release.
 - **Tests & CI**: offline test suite against a sanitized fixture; GitHub Actions
   workflow running pytest on Python 3.11–3.13.
 
-[Unreleased]: https://github.com/erikleon/citibike2strava/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/erikleon/citibike2strava/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/erikleon/citibike2strava/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/erikleon/citibike2strava/releases/tag/v0.1.0
