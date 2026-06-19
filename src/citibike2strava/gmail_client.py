@@ -9,6 +9,7 @@ the ASCII-safe ``polyline=`` param rather than the static-map scalar lat/lng.
 from __future__ import annotations
 
 import base64
+from datetime import date
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -100,11 +101,25 @@ class GmailClient:
         return msg.get("labelIds", [])
 
 
-def build_unprocessed_query(config: Config) -> str:
-    """Gmail query for receipts that have not been uploaded yet."""
+def build_unprocessed_query(
+    config: Config, *, since: date | None = None, until: date | None = None
+) -> str:
+    """Gmail query for receipts that have not been uploaded yet.
+
+    ``since`` / ``until`` restrict the search to a date window (used by backfill
+    to target a slice of history). Gmail's ``after:``/``before:`` take
+    ``YYYY/MM/DD`` and are inclusive of ``after`` and exclusive of ``before``.
+    """
     # Exclude already-labelled mail at the query level; the pipeline also
     # double-checks per-message to stay correct if the label was just created.
-    return f'{config.gmail_query} -label:"{config.processed_label}"'
+    parts = [config.gmail_query]
+    if config.processed_label:
+        parts.append(f'-label:"{config.processed_label}"')
+    if since is not None:
+        parts.append(f"after:{since:%Y/%m/%d}")
+    if until is not None:
+        parts.append(f"before:{until:%Y/%m/%d}")
+    return " ".join(parts)
 
 
 __all__ = ["GmailClient", "build_unprocessed_query", "HttpError"]
