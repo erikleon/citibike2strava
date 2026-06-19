@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-19
+
 ### Added
 
 - **`watch` command**: a foreground auto-sync loop (`citibike2strava watch
@@ -82,6 +84,7 @@ Initial release.
 - **Tests & CI**: offline test suite against a sanitized fixture; GitHub Actions
   workflow running pytest on Python 3.11–3.13.
 
-[Unreleased]: https://github.com/erikleon/citibike2strava/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/erikleon/citibike2strava/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/erikleon/citibike2strava/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/erikleon/citibike2strava/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/erikleon/citibike2strava/releases/tag/v0.1.0
