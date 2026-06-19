@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`watch` command**: a foreground auto-sync loop (`citibike2strava watch
+  --interval-minutes N`) as a single-command alternative to the `schedule`
+  recipes. Syncs immediately then every interval; logs transient errors and
+  keeps going, exits non-zero on a fatal auth error, and shuts down cleanly on
+  Ctrl-C/SIGTERM.
+
 ## [0.2.0] - 2026-06-18
 
 Sharpen the local tool: bulk backfill, more cities, no-Gmail ingestion, and

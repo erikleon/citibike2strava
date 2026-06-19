@@ -107,6 +107,7 @@ citibike2strava run
 | `citibike2strava export <message_id> [-o ride.gpx]` | Write a receipt's GPX without uploading (debugging). |
 | `citibike2strava serve [--port N]` | Run the local one-click backend for the browser extension. |
 | `citibike2strava schedule [--interval-minutes N]` | Print cron/launchd/Task Scheduler recipes for unattended auto-sync. |
+| `citibike2strava watch [--interval-minutes N]` | Poll for new receipts on an interval in the foreground (single-command auto-sync). |
 | `citibike2strava logout` | Delete stored tokens. |
 
 ### Backfill your whole history
@@ -158,10 +159,21 @@ local processed-receipts cache (bypass with `--force`) backed by Strava's
 
 ### Unattended auto-sync
 
-`citibike2strava schedule` prints a ready-to-use cron / launchd / Windows Task
-Scheduler recipe that runs the idempotent `run` on a timer (no daemon to babysit).
-Set `CITIBIKE2STRAVA_LOG=<path>` so each run appends a one-line summary — that way
-a silent failure (e.g. an expired token) is visible after the fact.
+Two ways to keep Strava in sync without thinking about it:
+
+- **OS scheduler (recommended for true background):** `citibike2strava schedule`
+  prints a ready-to-use cron / launchd / Windows Task Scheduler recipe that runs
+  the idempotent `run` on a timer — it survives reboots and there's no process to
+  babysit.
+- **Foreground loop:** `citibike2strava watch --interval-minutes 30` polls in a
+  single long-running command. It syncs immediately, then every interval; a
+  transient error (network blip, rate limit) is logged and it keeps going, while
+  a fatal auth error (a revoked token needing `login` again) stops it with a
+  non-zero exit so you notice. Ctrl-C (or SIGTERM) shuts it down cleanly.
+
+Either way, set `CITIBIKE2STRAVA_LOG=<path>` so each run appends a one-line
+summary — that way a silent failure (e.g. an expired token) is visible after the
+fact.
 
 ## One-click from inside the email (browser extension)
 
