@@ -363,8 +363,9 @@
         <p class="tagline">
           Turn the <strong>Ride Receipt</strong> emails Citi Bike sends to your
           Gmail into <strong>Strava activities</strong> — with the real route
-          map, correct distance, and proper timestamps. A small, auditable
-          Python CLI you run yourself.
+          map, correct distance, and proper timestamps. Backfill your whole
+          history, sync new rides automatically, and import from any Lyft
+          bikeshare — from a small, auditable Python CLI you run yourself.
         </p>
         <div class="badges">
           <a
@@ -398,9 +399,9 @@
       <div class="wrap">
         <h2>See it run</h2>
         <p class="lead">
-          One command processes every receipt that hasn't been uploaded yet.
-          Preview first with <code class="mono">--dry-run</code> — it parses
-          only, no writes.
+          One command processes every receipt that hasn't been uploaded yet —
+          or backfill a date window. Preview first with
+          <code class="mono">--dry-run</code> (parses only, no writes).
         </p>
         <div class="terminals">
           <div class="terminal">
@@ -436,22 +437,28 @@
             <div class="term-bar">
               <span class="dot red"></span><span class="dot amber"></span
               ><span class="dot green"></span>
-              <span class="title">citibike2strava run --dry-run</span>
+              <span class="title">citibike2strava run --since 2024-01-01</span>
             </div>
             <div class="term-body mono">
               <div class="line">
                 <span class="prompt">$</span>
-                <span class="cmd">citibike2strava run --dry-run --limit 1</span>
+                <span class="cmd">citibike2strava run --since 2024-01-01</span>
               </div>
               <div class="line">
-                <span class="dim">· [dry-run]</span> receipt
+                <span class="ok">✓ [uploaded]</span> receipt
                 #2230984572681199610 <span class="accent">4.29 mi</span> —
                 Bushwick Ave &amp; Forrest St → Rogers Ave &amp; Lincoln Rd
-                <span class="dim">(EBikeRide)</span>
+              </div>
+              <div class="line">
+                <span class="dim">» [skipped]</span> receipt
+                #2230990114007782244 <span class="accent">2.10 mi</span> —
+                <span class="dim">already uploaded (cached)</span>
               </div>
               <div class="line"></div>
               <div class="line">
-                <span class="dim">0 uploaded, 0 errors, 1 total.</span>
+                <span class="dim"
+                  >1 uploaded, 0 duplicate, 1 skipped, 0 errors, 2 total.</span
+                >
               </div>
             </div>
           </div>
@@ -520,7 +527,10 @@
         <h2>Setup</h2>
         <p class="lead">
           Requires Python 3.11+. You register your own Google and Strava apps —
-          there's no shared server and no third party in the loop.
+          there's no shared server and no third party in the loop. Strava's API
+          needs a Strava subscription (no extra fee for subscribers). Prefer not
+          to connect Gmail? Feed a saved <code class="mono">.eml</code> with
+          <code class="mono">process-file</code> instead.
         </p>
         <pre class="code mono"><span class="c"># 1. Clone &amp; install</span>
 git clone https://github.com/erikleon/citibike2strava
@@ -539,15 +549,21 @@ citibike2strava login
 <span class="c"># 4. Preview what would be uploaded — parses only, no writes.</span>
 citibike2strava run --dry-run
 
-<span class="c"># 5. Do it for real.</span>
-citibike2strava run</pre>
+<span class="c"># 5. Do it for real (or backfill your history: run --since 2024-01-01).</span>
+citibike2strava run
+
+<span class="c"># 6. Optional: print a cron/launchd/Task Scheduler recipe to auto-sync.</span>
+citibike2strava schedule</pre>
       </div>
     </section>
 
     <section id="features">
       <div class="wrap">
         <h2>Why it's nice</h2>
-        <p class="lead">Accurate, private, and idempotent by design.</p>
+        <p class="lead">
+          Accurate, private, and idempotent by design — built for your whole
+          history, not just today's ride.
+        </p>
         <div class="features">
           <div class="feature">
             <div class="ic">🗺️</div>
@@ -580,6 +596,42 @@ citibike2strava run</pre>
               You bring your own OAuth apps. Tokens are stored locally with
               <code>0600</code> permissions and never sent to anyone but Google
               and Strava.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="ic">📚</div>
+            <h3>Backfill your whole history</h3>
+            <p>
+              Import every past ride in one run. It paces itself under Strava's
+              rate limit, retries on
+              <code>429</code>, and resumes cleanly — one bad receipt never
+              aborts the batch.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="ic">🌎</div>
+            <h3>Any Lyft bikeshare</h3>
+            <p>
+              Citi Bike, plus experimental Divvy, Bay Wheels, Bluebikes, and
+              Capital Bikeshare. The parser fails closed on anything it doesn't
+              recognize, so it never invents a route.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="ic">📩</div>
+            <h3>No Gmail required</h3>
+            <p>
+              Feed a saved or forwarded <code>.eml</code> (or paste the receipt)
+              with <code>process-file</code> and skip the Gmail connection
+              entirely — Strava is the only account you need.
+            </p>
+          </div>
+          <div class="feature">
+            <div class="ic">⏰</div>
+            <h3>Set and forget</h3>
+            <p>
+              <code>schedule</code> prints a cron / launchd / Task Scheduler
+              recipe so new rides sync automatically — no daemon to babysit.
             </p>
           </div>
         </div>
