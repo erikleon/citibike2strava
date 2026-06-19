@@ -121,10 +121,18 @@ def get_access_token(
     # Refresh a minute early to avoid edge-of-expiry failures.
     if data.get("expires_at", 0) <= time.time() + 60:
         client_id, client_secret = config.require_strava()
-        data = _exchange(client_id, client_secret, {
-            "grant_type": "refresh_token",
-            "refresh_token": data["refresh_token"],
-        })
+        try:
+            data = _exchange(client_id, client_secret, {
+                "grant_type": "refresh_token",
+                "refresh_token": data["refresh_token"],
+            })
+        except requests.RequestException as exc:
+            # A revoked/expired refresh token (or a network failure) must surface
+            # as a clear, actionable error — not a raw traceback in a cron log.
+            raise NotAuthorizedError(
+                "Strava token refresh failed; re-run `citibike2strava login "
+                f"--strava`. ({exc})"
+            ) from exc
         store.save(PROVIDER, data, user_id)
     return data["access_token"]
 
