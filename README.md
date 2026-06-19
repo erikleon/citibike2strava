@@ -61,6 +61,13 @@ Gmail ("Ride Receipt")  ──►  parse receipt  ──►  build GPX  ──�
 
 Requires Python 3.11+.
 
+> **Strava API prerequisite.** As of 2026, Strava's API is available at the
+> Standard tier with a **Strava subscription** (per Strava's
+> [API FAQ](https://communityhub.strava.com/developers-knowledge-base-14/strava-api-faq-12906),
+> a subscriber pays no additional fee for API access). Free-tier Strava accounts
+> may need to subscribe to register the API app this tool uses. You still register
+> your **own** app — there is no shared backend.
+
 ```bash
 git clone https://github.com/erikleon/citibike2strava
 cd citibike2strava
@@ -87,12 +94,68 @@ citibike2strava run
 | Command | Description |
 |---|---|
 | `citibike2strava login [--gmail] [--strava]` | Authorize one or both services (browser OAuth). |
-| `citibike2strava status` | Show what is authorized and current config. |
-| `citibike2strava run [--dry-run] [--limit N]` | Process all not-yet-uploaded receipts. |
-| `citibike2strava process <message_id> [--dry-run]` | Process a single receipt by Gmail message id. |
+| `citibike2strava status` | Show what is authorized, the selected system, and current config. |
+| `citibike2strava run [--dry-run] [--limit N] [--since YYYY-MM-DD] [--until YYYY-MM-DD] [--force]` | Process not-yet-uploaded receipts; use `--since/--until` to backfill a date window. |
+| `citibike2strava process <message_id> [--dry-run] [--force]` | Process a single receipt by Gmail message id. |
+| `citibike2strava process-file <path\|-> [--dry-run] [--force]` | Process a saved/forwarded `.eml` (or pasted HTML on stdin) — no Gmail API needed. |
 | `citibike2strava export <message_id> [-o ride.gpx]` | Write a receipt's GPX without uploading (debugging). |
 | `citibike2strava serve [--port N]` | Run the local one-click backend for the browser extension. |
+| `citibike2strava schedule [--interval-minutes N]` | Print cron/launchd/Task Scheduler recipes for unattended auto-sync. |
 | `citibike2strava logout` | Delete stored tokens. |
+
+### Backfill your whole history
+
+`run` processes every receipt not yet uploaded, so the first run imports your
+entire history. It paces itself under Strava's rate limit (200 requests / 15
+min), backs off on `429`, and a failure on one ride doesn't abort the batch, so a
+large import resumes cleanly on re-run. Target a slice with `--since`/`--until`:
+
+```bash
+citibike2strava run --since 2024-01-01 --until 2025-01-01
+```
+
+### Other Lyft bikeshare cities
+
+Citi Bike (NYC) is verified. The same Lyft receipt template powers other
+systems; select one with `CITIBIKE2STRAVA_SYSTEM` (the Gmail sender and timezone
+are derived automatically):
+
+| `CITIBIKE2STRAVA_SYSTEM` | System | Status |
+|---|---|---|
+| `citibike` | Citi Bike (NYC) | supported |
+| `divvy` | Divvy (Chicago) | experimental |
+| `baywheels` | Bay Wheels (SF) | experimental |
+| `bluebikes` | Bluebikes (Boston) | experimental |
+| `capitalbikeshare` | Capital Bikeshare (DC) | experimental |
+
+"Experimental" means the sender/timezone are best-known but not yet verified
+against a real receipt fixture. The parser **fails closed** — if a system's
+template differs it raises an error rather than uploading a wrong route. If you
+use an experimental system and it works (or doesn't), please open an issue with a
+sanitized receipt so it can be promoted to "supported".
+
+### Without connecting Gmail (`.eml` / paste)
+
+You don't have to grant Gmail access at all. Save a receipt as `.eml` (or forward
+it to yourself) and feed it in — the receipt is parsed locally and uploaded to
+Strava exactly as the Gmail path does:
+
+```bash
+citibike2strava process-file ride-receipt.eml
+# or pipe raw receipt HTML:
+pbpaste | citibike2strava process-file -
+```
+
+This path needs only Strava authorization. Duplicate uploads are prevented by a
+local processed-receipts cache (bypass with `--force`) backed by Strava's
+`external_id` duplicate check.
+
+### Unattended auto-sync
+
+`citibike2strava schedule` prints a ready-to-use cron / launchd / Windows Task
+Scheduler recipe that runs the idempotent `run` on a timer (no daemon to babysit).
+Set `CITIBIKE2STRAVA_LOG=<path>` so each run appends a one-line summary — that way
+a silent failure (e.g. an expired token) is visible after the fact.
 
 ## One-click from inside the email (browser extension)
 

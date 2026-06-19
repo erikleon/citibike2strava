@@ -13,11 +13,14 @@ src/citibike2strava/
 ├── polyline.py       Google encoded-polyline decoder (no deps)
 ├── geo.py            haversine + cumulative/total distance
 ├── receipt.py        receipt HTML → Ride  (parse_receipt)
+├── eml.py            .eml / forwarded / pasted HTML → receipt HTML (no Gmail)
 ├── gpx.py            Ride → GPX 1.1 string (XML-escaped, UTC, interpolated time)
 ├── gmail_client.py   Gmail API: search / read HTML / label
-├── strava_client.py  Strava API: upload GPX, poll, set sport type
-├── config.py         env/.env/toml config + on-disk locations
-├── pipeline.py       orchestration: process_message / process_inbox  ← reusable core
+├── strava_client.py  Strava API: upload GPX, poll, set type; rate-limit backoff
+├── processed.py      local processed-receipt cache (fast-path dedup)
+├── config.py         env/.env/toml config, bikeshare-system registry, locations
+├── scheduler.py      cron/launchd/Task Scheduler recipe text (auto-sync)
+├── pipeline.py       orchestration: process_message / process_html / process_inbox
 ├── cli.py            argparse front-end (one of potentially many front-ends)
 ├── server.py         loopback one-click backend (front-end #2, see Path 2)
 └── auth/
@@ -48,7 +51,10 @@ dependencies and is trivially unit-testable offline.
 2. **`Pipeline.process_message(message_id, *, dry_run)`** — a single entrypoint
    that takes a Gmail message id (and is constructed with a `Config`, a
    `TokenStore`, and a `user_id`). Any front-end — CLI, HTTP handler, queue
-   worker — calls this same method.
+   worker — calls this same method. **`Pipeline.process_html(html, *,
+   source_id)`** is the sibling seam for callers that already have the receipt
+   HTML (a saved/forwarded `.eml`, a paste, or a future inbound-email webhook):
+   it shares the same parse→GPX→upload core but needs no Gmail access at all.
 
 ```python
 from citibike2strava import Pipeline
