@@ -9,6 +9,7 @@
     citibike2strava export <message_id> -o f.gpx write GPX without uploading
     citibike2strava serve                        run the local one-click backend
     citibike2strava schedule [--interval-minutes N]  print auto-sync recipes
+    citibike2strava watch [--interval-minutes N]     poll on an interval (foreground)
     citibike2strava logout                       delete stored tokens
 """
 
@@ -131,6 +132,18 @@ def _append_log(summary: str) -> None:
         print(f"warning: could not write log {path}: {exc}", file=sys.stderr)
 
 
+def _report(results) -> int:
+    """Print the run summary, append it to the log, and return the error count."""
+    if not results:
+        print("No new receipts found.")
+        _append_log("0 uploaded, 0 errors, 0 total.")
+        return 0
+    summary, errors = _summarize(results)
+    print(f"\n{summary}")
+    _append_log(summary)
+    return errors
+
+
 def cmd_run(args) -> int:
     config, store = _store_and_config(args)
     pipeline = Pipeline(config, store)
@@ -143,14 +156,44 @@ def cmd_run(args) -> int:
         force=args.force,
         on_result=_print_result,
     )
-    if not results:
-        print("No new receipts found.")
-        _append_log("0 uploaded, 0 errors, 0 total.")
-        return 0
-    summary, errors = _summarize(results)
-    print(f"\n{summary}")
-    _append_log(summary)
-    return 1 if errors else 0
+    return 1 if _report(results) else 0
+
+
+def cmd_watch(args) -> int:
+    import signal
+
+    from . import watch
+
+    config, store = _store_and_config(args)
+    pipeline = Pipeline(config, store)
+
+    def tick() -> None:
+        _report(pipeline.process_inbox(on_result=_print_result))
+
+    def on_event(kind: str, exc: object = None) -> None:
+        if kind == "fatal":
+            print(f"error: {exc}", file=sys.stderr)
+        elif kind == "transient":
+            print(f"warning: sync failed, retrying next tick: {exc}", file=sys.stderr)
+            _append_log(f"tick failed (will retry): {exc}")
+        elif kind in ("interrupted", "stopped"):
+            print("\nStopped.")
+
+    # Make SIGTERM behave like Ctrl-C so the daemon shuts down cleanly under a
+    # supervisor; ignore platforms/contexts where SIGTERM can't be trapped.
+    def _raise_keyboard_interrupt(signum, frame):
+        raise KeyboardInterrupt
+
+    try:
+        signal.signal(signal.SIGTERM, _raise_keyboard_interrupt)
+    except (ValueError, AttributeError, OSError):
+        pass
+
+    print(
+        f"Watching for new receipts every {args.interval_minutes} min "
+        "(Ctrl-C to stop)…"
+    )
+    return watch.run_watch(tick, interval_s=args.interval_minutes * 60, on_event=on_event)
 
 
 def cmd_process(args) -> int:
@@ -268,6 +311,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_sched.add_argument("--interval-minutes", type=int, default=60,
                          help="how often to run (default 60)")
     p_sched.set_defaults(func=cmd_schedule)
+
+    p_watch = sub.add_parser(
+        "watch", help="poll for new receipts on an interval (foreground loop)"
+    )
+    p_watch.add_argument("--interval-minutes", type=int, default=60,
+                         help="how often to poll (default 60)")
+    p_watch.set_defaults(func=cmd_watch)
 
     return parser
 
