@@ -16,11 +16,64 @@ from pathlib import Path
 
 APP_NAME = "citibike2strava"
 
+
+@dataclass(frozen=True)
+class BikeshareSystem:
+    """A Lyft-operated bikeshare whose receipt emails share one template.
+
+    ``supported`` is True only for systems with a real receipt fixture proving
+    the parser handles their mail. Others are ``experimental``: enabled so users
+    can try them, but unverified. The parser fails closed (raises rather than
+    uploading guessed data) on any template mismatch, so an experimental system
+    that differs errors out instead of producing a wrong route.
+    """
+
+    key: str
+    name: str
+    sender: str  # Gmail From: domain for ride receipts
+    timezone: str
+    supported: bool
+
+
+# Citi Bike (NYC) is verified against a real fixture. The other systems are the
+# same Lyft "make_email" template in principle; sender domains/timezones are
+# best-known but UNVERIFIED (experimental) until a real receipt fixture is added.
+# Override any field with CITIBIKE2STRAVA_GMAIL_QUERY / CITIBIKE2STRAVA_TZ.
+SYSTEMS: dict[str, BikeshareSystem] = {
+    "citibike": BikeshareSystem(
+        "citibike", "Citi Bike (NYC)", "updates.citibikenyc.com",
+        "America/New_York", supported=True,
+    ),
+    "divvy": BikeshareSystem(
+        "divvy", "Divvy (Chicago)", "updates.divvybikes.com",
+        "America/Chicago", supported=False,
+    ),
+    "baywheels": BikeshareSystem(
+        "baywheels", "Bay Wheels (SF)", "updates.baywheels.com",
+        "America/Los_Angeles", supported=False,
+    ),
+    "bluebikes": BikeshareSystem(
+        "bluebikes", "Bluebikes (Boston)", "updates.bluebikes.com",
+        "America/New_York", supported=False,
+    ),
+    "capitalbikeshare": BikeshareSystem(
+        "capitalbikeshare", "Capital Bikeshare (DC)", "updates.capitalbikeshare.com",
+        "America/New_York", supported=False,
+    ),
+}
+DEFAULT_SYSTEM = "citibike"
+
+
+def system_gmail_query(system: BikeshareSystem) -> str:
+    """The Gmail search that isolates a system's ride receipts."""
+    return f'from:{system.sender} subject:"Ride Receipt"'
+
+
 # Gmail query that isolates Citi Bike ride receipts (verified against real mail).
-DEFAULT_GMAIL_QUERY = 'from:updates.citibikenyc.com subject:"Ride Receipt"'
+DEFAULT_GMAIL_QUERY = system_gmail_query(SYSTEMS[DEFAULT_SYSTEM])
 # Gmail label applied after a successful upload, for idempotency.
 DEFAULT_PROCESSED_LABEL = "citibike2strava/uploaded"
-DEFAULT_TIMEZONE = "America/New_York"
+DEFAULT_TIMEZONE = SYSTEMS[DEFAULT_SYSTEM].timezone
 
 # Minimal scopes. gmail.modify is required to add the "uploaded" label;
 # without labelling we could not reliably avoid re-uploading. Strava needs
@@ -63,10 +116,15 @@ class Config:
     gmail_query: str = DEFAULT_GMAIL_QUERY
     processed_label: str = DEFAULT_PROCESSED_LABEL
     timezone: str = DEFAULT_TIMEZONE
+    system: str = DEFAULT_SYSTEM
 
     @property
     def tokens_dir(self) -> Path:
         return self.home / "tokens"
+
+    @property
+    def bikeshare(self) -> BikeshareSystem:
+        return SYSTEMS[self.system]
 
     def require_google(self) -> tuple[str, str]:
         if not self.google_client_id or not self.google_client_secret:
@@ -105,13 +163,24 @@ def load_config(home: Path | None = None) -> Config:
             return os.environ[env_key]
         return file_cfg.get(toml_section, {}).get(toml_key, default)
 
+    # The selected bikeshare system supplies the default Gmail sender and
+    # timezone; an explicit query/timezone still wins over the system default.
+    system_key = pick("CITIBIKE2STRAVA_SYSTEM", "general", "system", DEFAULT_SYSTEM)
+    system = SYSTEMS.get(system_key)
+    if system is None:
+        known = ", ".join(sorted(SYSTEMS))
+        raise ConfigError(
+            f"Unknown bikeshare system {system_key!r}. Known systems: {known}."
+        )
+
     return Config(
         home=home,
         google_client_id=pick("GOOGLE_CLIENT_ID", "google", "client_id"),
         google_client_secret=pick("GOOGLE_CLIENT_SECRET", "google", "client_secret"),
         strava_client_id=pick("STRAVA_CLIENT_ID", "strava", "client_id"),
         strava_client_secret=pick("STRAVA_CLIENT_SECRET", "strava", "client_secret"),
-        gmail_query=pick("CITIBIKE2STRAVA_GMAIL_QUERY", "gmail", "query", DEFAULT_GMAIL_QUERY),
+        gmail_query=pick("CITIBIKE2STRAVA_GMAIL_QUERY", "gmail", "query", system_gmail_query(system)),
         processed_label=pick("CITIBIKE2STRAVA_LABEL", "gmail", "processed_label", DEFAULT_PROCESSED_LABEL),
-        timezone=pick("CITIBIKE2STRAVA_TZ", "general", "timezone", DEFAULT_TIMEZONE),
+        timezone=pick("CITIBIKE2STRAVA_TZ", "general", "timezone", system.timezone),
+        system=system_key,
     )
