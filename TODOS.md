@@ -23,20 +23,7 @@ Deferred work, with enough context to pick it up cold. Recorded during the
 - **Depends on:** Strava granting >10-athlete partner/commercial approval. Do not
   build until that gate is cleared.
 
-## 2. `--watch` auto-sync daemon
-
-- **What:** A long-running `citibike2strava watch --interval N` that polls Gmail
-  and uploads new rides, as an alternative to the OS-scheduler recipes shipped in
-  the sharpen-local-tool round.
-- **Why deferred:** Scheduler recipes (cron/launchd/Task Scheduler) reuse the
-  existing idempotent `run`, survive reboots, and add near-zero new failure
-  modes. A daemon adds crash recovery, long-uptime token refresh, log rotation,
-  and "why did it stop" support burden.
-- **Context:** Build only if users want a single portable binary / a clear
-  "it's running" status instead of OS-specific scheduler setup.
-- **Depends on:** the OS-scheduler path shipping first; user demand signal.
-
-## 3. Richer activity data + variable-speed timing
+## 2. Richer activity data + variable-speed timing
 
 - **What:** (a) Gear assignment, calorie estimate, per-point elevation
   enrichment; (b) variable-speed timing instead of today's constant-speed
@@ -48,7 +35,7 @@ Deferred work, with enough context to pick it up cold. Recorded during the
   start/end times, so any speed profile is inferred regardless.
 - **Depends on:** evidence that users care about segment accuracy.
 
-## 4. Gmail read-side quota handling for large backfills
+## 3. Gmail read-side quota handling for large backfills
 
 - **What:** Apply throttle/backoff to the Gmail message-fetch side of backfill
   (Gmail API quota units + pagination), matching the Strava-write resilience.

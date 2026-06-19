@@ -20,6 +20,7 @@ src/citibike2strava/
 ├── processed.py      local processed-receipt cache (fast-path dedup)
 ├── config.py         env/.env/toml config, bikeshare-system registry, locations
 ├── scheduler.py      cron/launchd/Task Scheduler recipe text (auto-sync)
+├── watch.py          foreground auto-sync poll loop (citibike2strava watch)
 ├── pipeline.py       orchestration: process_message / process_html / process_inbox
 ├── cli.py            argparse front-end (one of potentially many front-ends)
 ├── server.py         loopback one-click backend (front-end #2, see Path 2)
